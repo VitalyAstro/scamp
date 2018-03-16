@@ -528,6 +528,10 @@ void makeit(void)
         write_aschead(filename, fields[f]);
     }
 
+    NFPRINTF(OUTPUT, "Computing detector footprints ...");
+    for (f=0; f<nfield; f++)
+      makepoly_field(fields[f]);
+
 #ifdef HAVE_PLPLOT
 
     /* Plot field and source positions */
