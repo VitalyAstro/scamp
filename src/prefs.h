@@ -221,6 +221,7 @@ typedef struct
   int		xml_flag;			/* Write XML file? */
   char		xml_name[MAXCHAR];		/* XML file name */
   char		xsl_name[MAXCHAR];		/* XSL file name (or URL) */
+  char		json_name[MAXCHAR];		/* JSON file name */
   char		sdate_start[12];		/* SCAMP start date */
   char		stime_start[12];		/* SCAMP start time */
   char		sdate_end[12];			/* SCAMP end date */

@@ -199,6 +199,7 @@ pkeystruct key[] =
   {"WEIGHTFLAGS_MASK", P_INT, &prefs.wflags_mask, 0,0xff, 0.0,0.0},
   {"WRITE_XML", P_BOOL, &prefs.xml_flag},
   {"XML_NAME", P_STRING, prefs.xml_name},
+  {"JSON_NAME", P_STRING, prefs.json_name},
   {"XSL_URL", P_STRING, prefs.xsl_name},
   {""}
  };
@@ -368,6 +369,7 @@ char *default_prefs[] =
 "VERBOSE_TYPE           NORMAL          # QUIET, NORMAL, LOG or FULL",
 "WRITE_XML              Y               # Write XML file (Y/N)?",
 "XML_NAME               scamp.xml       # Filename for XML output",
+"JSON_NAME              scamp.json      # Filename for JSON output",
 "*XSL_URL                " XSL_URL,
 "*                                       # Filename for XSL style-sheet",
 #ifdef USE_THREADS
