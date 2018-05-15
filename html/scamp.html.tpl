@@ -432,7 +432,7 @@
                 showReticle: false,
                 showZoomControl: true,
                 showFullScreenControl: true,
-                showLayersControl: true,
+                showLayersControl: false,
                 showGotoControl: false,
                 showShareControl: false,
                 fulscreen: false
@@ -547,8 +547,18 @@
 
             function aladinDraw(higlight) {
                 /* TODO highlight a field */
+
+                var i = 0;
                 $.each(scamp_data.Fields, function(i, field) {
-                    var overlay = A.graphicOverlay({color: getRandomColor(), lineWidth: 1});
+                    if (higlight == i) {
+                        var w = 10;
+                        var color = "#ffffff";
+                    } else {
+                        var w = 1;
+                        var color = "#000";
+                    }
+
+                    var overlay = A.graphicOverlay({color: getRandomColor(), lineWidth: w});
                     aladin.addOverlay(overlay);
 
                     for (var i=0; i<field.Set_Polygon.value.length; i++) {
@@ -562,7 +572,7 @@
 
 
 			$(document).ready(function() {
-                aladinDraw();
+                aladinDraw(3);
 				console.log(scamp_data);
 
 				/* build status string */
@@ -576,8 +586,8 @@
 
 				/* show/hide match option and plots */
 				var showmatch = getElemVal("MATCH", scamp_data.Configuration);
-				var showplot  = getElemVal("CHECK_PLOT_DEV", scamp_data.Configuration);
-				showplot = (showplot > "PNG" || showplot > "PNG" ) ? false : true;
+				var showplot  = getElemVal("CHECKPLOT_DEV", scamp_data.Configuration)[0];
+                showplot = (showplot == "PNG") ? true : false;
 
 				/* 
 				 * build fields table 
@@ -644,7 +654,7 @@
 					table_row += "<tr>";
 					table_row += "<td>" +  group.Name.value + "</td>";
 					if (showplot) {
-						table_row += "<td>" + group.FgroupsPlot.value + "</td>";
+						table_row += generateImageColHelper(group.FgroupsPlot.value);
 					} else {
 						table_row += "<td></td>";
 					}
