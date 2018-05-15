@@ -28,7 +28,7 @@
 
 ACLOCAL_AMFLAGS		= -I m4
 AUTOMAKE_OPTIONS	= foreign no-dependencies
-SUBDIRS			= src tests man doc debian
+SUBDIRS			= src tests man doc debian html
 dist_pkgdata_DATA	= config/*.ahead xsl/scamp.xsl
 EXTRA_DIST		= autogen.sh AUTHORS BUGS ChangeLog COPYRIGHT \
 			  HISTORY INSTALL LICENSE README.md THANKS
