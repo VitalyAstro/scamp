@@ -1,13 +1,12 @@
+/*                                                                     
+ *                                                                     
+ * Data contained in "scamp_data" object, is loaded at the very end 
+ * of this html file is his own <script> tag.                          
+ *                                                                     
+ */                                                                    
 
-/*
- *
- * Data contained in "scamp_data" object, is loaded at the very end
- * of this html file is his own <script> tag.
- *
- */
-
-/* from an array of object (data), return the "value" property of
- * object havinig "str" as "name" property. */
+/* from an array of object (data), return the "value" property of   
+ * object havinig "str" as "name" property. */   
 function getElemVal(str, data) {
     var value = "";
     $.each(data, function (i, elem) {
@@ -131,12 +130,20 @@ function aladinDraw(higlight) {
             })
 }
 
+function generateImageColHelper(imageUrl) {
+    var value = "";
+    /* value += "<td><a type='button' rel='popover' data-img='"+imageUrl+"'>"; */
+    value += "<td><a type='button' data-toggle='modal' data-target='#imageModal' data-imgurl='" + imageUrl + "'>";
+    value += "<img width='100' class='img-fluid' src='"+imageUrl+"' />";
+    value += "</a></td>";
+    return value;
+}
 
 $(document).ready(
         function() {
         /* first initialize aladin */
         aladin = A.aladin('#aladin-lite-div', {
-            survey: "P/DSS2/color",
+            survey: "P/DSS2/color", 
             fov: 60,
             showReticle: false,
             showZoomControl: true,
@@ -164,8 +171,8 @@ $(document).ready(
         var showplot  = getElemVal("CHECKPLOT_DEV", scamp_data.Configuration)[0];
         showplot = (showplot == "PNG") ? true : false;
 
-        /*
-         * build fields table
+        /* 
+         * build fields table 
          */
         $.each(scamp_data.Fields, function(i, field) {
                 var table_row = "";
@@ -213,25 +220,17 @@ $(document).ready(
         });
 
         setAladinPos();
-
-        function generateImageColHelper(imageUrl) {
-            value = "";
-            value += "<td><a type='button' rel='popover' data-img='"+imageUrl+"'>";
-            value += "<img width='100' src='"+imageUrl+"' />";
-            value += "</a></td>";
-            return value;
-        }
-        /*
-         * build fields groups table
+        /* 
+         * build fields groups table 
          */
         $.each(scamp_data.Fgroups, function(i, group) {
                 var table_row = "";
                 table_row += "<tr>";
                 table_row += "<td>" +  group.Name.value + "</td>";
                 if (showplot) {
-                table_row += generateImageColHelper(group.FgroupsPlot.value);
+                    table_row += generateImageColHelper(group.FgroupsPlot.value);
                 } else {
-                table_row += "<td></td>";
+                    table_row += "<td></td>";
                 }
                 table_row += "<td>" +  group.Index.value + "</td>";
                 table_row += "<td>" +  group.NFields.value + "</td>";
@@ -242,9 +241,9 @@ $(document).ready(
                 table_row += "<td>" +  group.AstRef_Catalog.value + "</td>";
                 table_row += "<td>" +  group.AstRef_Band.value + "</td>";
                 if (showplot) {
-                table_row += generateImageColHelper(group.Chi2Plot.value);
+                    table_row += generateImageColHelper(group.Chi2Plot.value);
                 } else {
-                table_row += "<td></td>";
+                    table_row += "<td></td>";
                 }
                 table_row += "<td>" +  getElemListValHelperFixedHelper(group.AstromSigma_Internal.value, "'' ", 4) + "</td>";
                 table_row += "<td>" +  group.AstromCorr_Internal.value.toFixed(5) + "</td>";
@@ -302,8 +301,8 @@ $(document).ready(
         });
 
 
-        /*
-         * build astrometric instruments table
+        /* 
+         * build astrometric instruments table 
          */
         $.each(scamp_data.AstroInstruments, function(i, astroinstru) {
                 var table_row = "";
@@ -323,8 +322,8 @@ $(document).ready(
                 });
 
 
-        /*
-         * build photometric instruments table
+        /* 
+         * build photometric instruments table 
          */
         $.each(scamp_data.PhotInstruments, function(i, photoinstru) {
                 var table_row = "";
@@ -340,8 +339,8 @@ $(document).ready(
                 });
 
 
-        /*
-         * build configuration table
+        /* 
+         * build configuration table 
          */
         $.each(scamp_data.Configuration, function(i, config) {
                 var table_row = "";
@@ -362,8 +361,8 @@ $(document).ready(
                 });
 
 
-        /*
-         * build warnings table
+        /* 
+         * build warnings table 
          */
         $.each(scamp_data.Warnings, function(i, warn) {
                 var table_row = "";
@@ -406,13 +405,13 @@ $(document).ready(
             $('#groupsTable td:nth-child(33)').hide();
             $('#groupsTable th:nth-child(47)').hide();
             $('#groupsTable td:nth-child(47)').hide();
-            $('#astrometricInstrumentsTable th:nth-child(6)').hide();
-            $('#astrometricInstrumentsTable td:nth-child(6)').hide();
+            $('#astrometricInstrumentsTable th:nth-child(6)').hide();   
+            $('#astrometricInstrumentsTable td:nth-child(6)').hide();  
         }
 
         if (scamp_data.Warnings.length == 0) {
             $("#warningDiv").hide();
-        }
+        }	
         $('a[rel=popover]').popover({
             animation: true, container: "body", html: true, placement: 'bottom', content: function() {return "<img src='"+$(this).data('img') + "' />";}
         });

@@ -15,11 +15,9 @@
         <link 
             rel="stylesheet" 
             href="https://aladin.u-strasbg.fr/AladinLite/api/v2/latest/aladin.min.css" />
-
         <link 
             rel="stylesheet" 
             href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-table/1.12.1/bootstrap-table.min.css">
-
 	    <style type="text/css">
 			@-ms-viewport     { width: device-width; }
 			@-o-viewport      { width: device-width; }
@@ -343,6 +341,25 @@
 		</div> <!--container-->
 
 
+        <!-- MODAL DIALOG -->
+        <div class="modal fade" id="imageModal" tabindex="-1" role="dialog" aria-labelledby="imageModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered" role="document" style="width:1000px;">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="imageModalLabel">New message</h5>
+                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                    </div>
+                    <div class="modal-body">
+                        <img class="modal-img" style="margin-left:auto;margin-right:auto;display:block;"></img>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                    </div>
+                </div>
+            </div>
+        </div>
 
 		<!-- SCRIPTS BEGIN -->
         <script
@@ -424,12 +441,23 @@
             });
         </script>
 
+        <script>
+            $('#imageModal').on('show.bs.modal', function (event) {
+                var button = $(event.relatedTarget); // Button that triggered the modal
+                var img = button.data('imgurl'); // Extract info from data-* attributes
+                var modal = $(this);
+                modal.find('.modal-title').text("Image: " + img);
+                imgtag = modal.find('.modal-img');
+                imgtag.attr("src", img);
+                imgtag.attr("title", img);
+                imgtag.attr("alt", img);
+            })
+        </script>
 		<!-- SCRIPTS END -->
 
 	</body>
 </html>
 <script>
-
 /*                                                                     
  *                                                                     
  * Data contained in "scamp_data" object, is loaded at the very end 
@@ -562,6 +590,14 @@ function aladinDraw(higlight) {
             })
 }
 
+function generateImageColHelper(imageUrl) {
+    var value = "";
+    /* value += "<td><a type='button' rel='popover' data-img='"+imageUrl+"'>"; */
+    value += "<td><a type='button' data-toggle='modal' data-target='#imageModal' data-imgurl='" + imageUrl + "'>";
+    value += "<img width='100' class='img-fluid' src='"+imageUrl+"' />";
+    value += "</a></td>";
+    return value;
+}
 
 $(document).ready(
         function() {
@@ -644,14 +680,6 @@ $(document).ready(
         });
 
         setAladinPos();
-
-        function generateImageColHelper(imageUrl) {
-            value = "";
-            value += "<td><a type='button' rel='popover' data-img='"+imageUrl+"'>";
-            value += "<img width='100' src='"+imageUrl+"' />";
-            value += "</a></td>";
-            return value;
-        }
         /* 
          * build fields groups table 
          */
@@ -660,9 +688,9 @@ $(document).ready(
                 table_row += "<tr>";
                 table_row += "<td>" +  group.Name.value + "</td>";
                 if (showplot) {
-                table_row += generateImageColHelper(group.FgroupsPlot.value);
+                    table_row += generateImageColHelper(group.FgroupsPlot.value);
                 } else {
-                table_row += "<td></td>";
+                    table_row += "<td></td>";
                 }
                 table_row += "<td>" +  group.Index.value + "</td>";
                 table_row += "<td>" +  group.NFields.value + "</td>";
@@ -673,9 +701,9 @@ $(document).ready(
                 table_row += "<td>" +  group.AstRef_Catalog.value + "</td>";
                 table_row += "<td>" +  group.AstRef_Band.value + "</td>";
                 if (showplot) {
-                table_row += generateImageColHelper(group.Chi2Plot.value);
+                    table_row += generateImageColHelper(group.Chi2Plot.value);
                 } else {
-                table_row += "<td></td>";
+                    table_row += "<td></td>";
                 }
                 table_row += "<td>" +  getElemListValHelperFixedHelper(group.AstromSigma_Internal.value, "'' ", 4) + "</td>";
                 table_row += "<td>" +  group.AstromCorr_Internal.value.toFixed(5) + "</td>";
@@ -845,8 +873,8 @@ $(document).ready(
             $("#warningDiv").hide();
         }	
         $('a[rel=popover]').popover({
-animation: true, container: "body", html: true, placement: 'bottom', content: function() {return "<img src='"+$(this).data('img') + "' />";}
-});
+            animation: true, container: "body", html: true, placement: 'bottom', content: function() {return "<img src='"+$(this).data('img') + "' />";}
+        });
 
 });
 </script>
