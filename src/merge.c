@@ -47,6 +47,161 @@
 #include "threads.h"
 #endif
 
+    static void
+merge_field(fieldstruct *field, int naxis, int *index, msamplestruct **msamp)
+{
+    setstruct       *set;
+    samplestruct    *samp,*samp2;
+    double          wcspos[NAXIS], wcsposerr[NAXIS], wcsposdisp[NAXIS],
+                    wcsposref[NAXIS],
+                    epoch,epochmin,epochmax, err2, spread, wspread,
+                    weight,weights, dummy;
+    long            dptr;
+    short           sexflagmask;
+    unsigned int    imaflagmask;
+    int	            d,f,i,k,n,p,s, nall,nphotok,nposok, npinstru,
+                    refflag;
+
+    sexflagmask = (short)prefs.astr_sexflagsmask;
+    imaflagmask = prefs.astr_imaflagsmask;
+    npinstru    = prefs.nphotinstrustr;
+    refflag     = prefs.astrefinprop_flag;
+
+
+    for (s=0; s<field->nset; s++)
+    {
+        set = field->set[s];
+        samp = set->sample;
+
+        for (n=set->nsample; n--; samp++) {
+
+            /* we are processing all tails */
+            if (samp->nextsamp)
+                continue;
+
+            (*msamp)->sourceindex = ++(*index);
+            (*msamp)->samp = samp;
+
+            /*-------- Astrometry */
+            nall = nposok = 0;
+            for (d=0; d<naxis; d++)
+                wcspos[d] = wcsposerr[d] = wcsposdisp[d] = wcsposref[d] = 0.0;
+            weights = 0.0;
+            epoch = spread = wspread = 0.0;
+            epochmin = BIG;
+            epochmax = -BIG;
+            for (samp2 = samp;
+                    samp2 && ((p=samp2->set->field->photomlabel)>=0 || refflag);
+                    samp2=samp2->prevsamp)
+            {
+                nall++;
+                if ((samp2->sexflags & sexflagmask)
+                        || (samp2->imaflags & imaflagmask)
+                        || (samp2->scampflags & SCAMP_BADPROPER))
+                    continue;
+                for (d=0; d<naxis; d++)
+                {
+                    err2 = samp2->wcsposerr[d]*samp2->wcsposerr[d];
+                    wcspos[d] += samp2->wcspos[d];
+                    if (err2 <= 0.0)
+                        err2 += 1.0;
+                    weight = 1.0/err2;
+                    weights += weight;
+                    epoch += weight*samp2->epoch;
+                    wcsposerr[d] += weight;
+                    wcspos[d] += weight*samp2->wcspos[d];
+                    if (!nposok)
+                        wcsposref[d] = samp2->wcspos[d];
+                    wcsposdisp[d] += (samp2->wcspos[d] - wcsposref[d])
+                        * (samp2->wcspos[d] - wcsposref[d]);
+                }
+
+                /*---------- Epochs */
+                if (p>=0)
+                {
+                    if (samp2->set->epochmin < epochmin)
+                        epochmin = samp2->set->epochmin;
+                    if (samp2->set->epochmax > epochmax)
+                        epochmax = samp2->set->epochmax;
+                }
+                else	/* Special treatment for astrometric ref. catalog */
+                {
+                    if (samp2->epoch < epochmin)
+                        epochmin = samp2->epoch;
+                    if (samp2->epoch > epochmax)
+                        epochmax = samp2->epoch;
+                }
+                /*---------- Morphometry */
+                if (prefs.spread_flag && p>=0)	/* Exclude ref. from stats */
+                {
+                    weight = samp2->spreaderr>TINY?
+                        1.0/(samp2->spreaderr*samp2->spreaderr) : 1.0;
+                    spread += weight*samp2->spread;
+                    wspread += weight;
+                }
+                /*---------- Flags */
+                (*msamp)->sexflags |= samp2->sexflags;
+                (*msamp)->scampflags |= samp2->scampflags;
+                (*msamp)->imaflags |= samp2->imaflags;
+                nposok++;
+            }
+            if (nposok)
+            {
+                for (d=0; d<naxis; d++)
+                {
+                    (*msamp)->wcspos[d] = wcspos[d] / wcsposerr[d];
+                    (*msamp)->wcsposerr[d] = sqrt(1.0/wcsposerr[d]);
+                    (*msamp)->wcsposdisp[d] = nposok > 1?
+                        sqrt(fabs(wcsposdisp[d]
+                                    - nposok*((*msamp)->wcspos[d] - wcsposref[d])
+                                    *((*msamp)->wcspos[d] - wcsposref[d]))/(nposok-1.0))
+                        : 0.0;
+                }
+                if ((*msamp)->wcsposerr[0] < (*msamp)->wcsposerr[1])
+                {
+                    dummy = (*msamp)->wcsposerr[0];
+                    (*msamp)->wcsposerr[0] = (*msamp)->wcsposerr[1];
+                    (*msamp)->wcsposerr[1] = dummy;
+                    (*msamp)->wcspostheta = 90.0;
+                }
+                else 
+                {
+                    (*msamp)->wcspostheta = 0.0;
+                }
+
+                (*msamp)->epoch = epoch / weights;
+                (*msamp)->epochmin = epochmin;
+                (*msamp)->epochmax = epochmax;
+
+                if (prefs.spread_flag)
+                {
+                    (*msamp)->spread = spread / wspread;
+                    (*msamp)->spreaderr = sqrt(1.0 / wspread);
+                }
+            }
+
+            if ((*index) == 866) {
+                fprintf(stderr, "=========================\n");
+                fprintf(stderr, "%p \n", (*msamp));
+                fprintf(stderr, "%i \n", (*msamp)->sourceindex);
+                fprintf(stderr, "%p \n", (*msamp)->samp);
+                fprintf(stderr, "%p \n", (*msamp)->samp->nextsamp);
+                fprintf(stderr, "%p \n", (*msamp)->samp->prevsamp);
+                fprintf(stderr, "%lf \n", (*msamp)->samp->wcspos[(*msamp)->samp->set->field->lng]);
+                fprintf(stderr, "%lf \n", (*msamp)->samp->wcspos[(*msamp)->samp->set->field->lat]);
+            }
+
+            (*msamp)->npos_tot = nall;
+            (*msamp)->npos_ok = nposok;
+
+            for (samp2 = samp; samp2; samp2=samp2->prevsamp)
+                samp2->msamp = (*msamp);
+
+            (*msamp)++;
+        }
+    }
+
+}
 
 /****** merge_fgroup ********************************************************
   PROTO	msamplestruct *merge_fgroup(fgroupstruct *fgroup, fieldstruct *reffield)
@@ -61,56 +216,38 @@
 msamplestruct	*merge_fgroup(fgroupstruct *fgroup, fieldstruct *reffield)
 
 {
-    fieldstruct		*field;
-    setstruct		*set;
-    msamplestruct	*msamp;
-    samplestruct		*samp,*samp2;
-    double		wcspos[NAXIS], wcsposerr[NAXIS], wcsposdisp[NAXIS],
-    wcsposref[NAXIS],
-    epoch,epochmin,epochmax, err2, spread, wspread,
-    weight,weights, dummy;
-    long			dptr;
-    short		sexflagmask;
-    unsigned int		imaflagmask;
-    int			d,f,i,k,n,p,s, nall,nphotok,nposok, npinstru, naxis,
-                nmsample, index, refflag;
+    fieldstruct     *field;
+    setstruct       *set;
+    samplestruct    *samp;
+    msamplestruct   *msamp;
+    int s, n, f, index, naxis, nmsample;
 
-    sexflagmask = (short)prefs.astr_sexflagsmask;
-    imaflagmask = prefs.astr_imaflagsmask;
     naxis = fgroup->naxis;
-    npinstru = prefs.nphotinstrustr;
-    refflag = prefs.astrefinprop_flag;
 
     /* Clear any existing msample array */
     free(fgroup->msample);
 
     /* Clear out msamp pointers in reference samples */
-    for (s=0; s<reffield->nset; s++)
-    {
-        set = reffield->set[s];
-        samp = set->sample;
-        for (n=set->nsample; n--; samp++)
+    for (s=0; s<reffield->nset; s++) {
+        for (n=0; n<reffield->set[s]->nsample; n++) {
+            samp = &reffield->set[s]->sample[n];
             samp->msamp = NULL;
+        }
     }
 
     /* Count the total number of sources */
     nmsample=0;
-    for (f=0; f<fgroup->nfield; f++)
-    {
-        field = fgroup->field[f];
-        for (s=0; s<field->nset; s++)
-        {
-            set = field->set[s];
-            samp = set->sample;
-            for (n=set->nsample; n--; samp++)
-            {
+    for (f=0; f<fgroup->nfield; f++) {
+        for (s=0; s<fgroup->field[f]->nset; s++) {
+            for (n=0; n<fgroup->field[f]->set[s]->nsample; n++) {
+                samp = &fgroup->field[f]->set[s]->sample[n];
                 samp->msamp = NULL;
+                /* count tail sample only */
                 if (!samp->nextsamp)
                     nmsample++;
             }
         }
     }
-
 
     fgroup->nmsample = nmsample;
     QCALLOC(fgroup->msample, msamplestruct, fgroup->nmsample);
@@ -118,119 +255,13 @@ msamplestruct	*merge_fgroup(fgroupstruct *fgroup, fieldstruct *reffield)
 
     index = 0;
     for (f=0; f<fgroup->nfield; f++)
-    {
-        field = fgroup->field[f];
-        for (s=0; s<field->nset; s++)
-        {
-            set = field->set[s];
-            samp = set->sample;
-            for (n=set->nsample; n--; samp++)
-                if (!samp->nextsamp)
-                {
-                    msamp->sourceindex = ++index;
-                    msamp->samp = samp;
+        merge_field(fgroup->field[f], naxis, &index, &msamp);
 
-                    /*-------- Astrometry */
-                    nall = nposok = 0;
-                    for (d=0; d<naxis; d++)
-                        wcspos[d] = wcsposerr[d] = wcsposdisp[d] = wcsposref[d] = 0.0;
-                    weights = 0.0;
-                    epoch = spread = wspread = 0.0;
-                    epochmin = BIG;
-                    epochmax = -BIG;
-                    for (samp2 = samp;
-                            samp2 && ((p=samp2->set->field->photomlabel)>=0 || refflag);
-                            samp2=samp2->prevsamp)
-                    {
-                        nall++;
-                        if ((samp2->sexflags & sexflagmask)
-                                || (samp2->imaflags & imaflagmask)
-                                || (samp2->scampflags & SCAMP_BADPROPER))
-                            continue;
-                        for (d=0; d<naxis; d++)
-                        {
-                            err2 = samp2->wcsposerr[d]*samp2->wcsposerr[d];
-                            wcspos[d] += samp2->wcspos[d];
-                            if (err2 <= 0.0)
-                                err2 += 1.0;
-                            weight = 1.0/err2;
-                            weights += weight;
-                            epoch += weight*samp2->epoch;
-                            wcsposerr[d] += weight;
-                            wcspos[d] += weight*samp2->wcspos[d];
-                            if (!nposok)
-                                wcsposref[d] = samp2->wcspos[d];
-                            wcsposdisp[d] += (samp2->wcspos[d] - wcsposref[d])
-                                * (samp2->wcspos[d] - wcsposref[d]);
-                        }
-
-                        /*---------- Epochs */
-                        if (p>=0)
-                        {
-                            if (samp2->set->epochmin < epochmin)
-                                epochmin = samp2->set->epochmin;
-                            if (samp2->set->epochmax > epochmax)
-                                epochmax = samp2->set->epochmax;
-                        }
-                        else	/* Special treatment for astrometric ref. catalog */
-                        {
-                            if (samp2->epoch < epochmin)
-                                epochmin = samp2->epoch;
-                            if (samp2->epoch > epochmax)
-                                epochmax = samp2->epoch;
-                        }
-                        /*---------- Morphometry */
-                        if (prefs.spread_flag && p>=0)	/* Exclude ref. from stats */
-                        {
-                            weight = samp2->spreaderr>TINY?
-                                1.0/(samp2->spreaderr*samp2->spreaderr) : 1.0;
-                            spread += weight*samp2->spread;
-                            wspread += weight;
-                        }
-                        /*---------- Flags */
-                        msamp->sexflags |= samp2->sexflags;
-                        msamp->scampflags |= samp2->scampflags;
-                        msamp->imaflags |= samp2->imaflags;
-                        nposok++;
-                    }
-                    if (nposok)
-                    {
-                        for (d=0; d<naxis; d++)
-                        {
-                            msamp->wcspos[d] = wcspos[d] / wcsposerr[d];
-                            msamp->wcsposerr[d] = sqrt(1.0/wcsposerr[d]);
-                            msamp->wcsposdisp[d] = nposok > 1?
-                                sqrt(fabs(wcsposdisp[d]
-                                            - nposok*(msamp->wcspos[d] - wcsposref[d])
-                                            *(msamp->wcspos[d] - wcsposref[d]))/(nposok-1.0))
-                                : 0.0;
-                        }
-                        if (msamp->wcsposerr[0] < msamp->wcsposerr[1])
-                        {
-                            dummy = msamp->wcsposerr[0];
-                            msamp->wcsposerr[0] = msamp->wcsposerr[1];
-                            msamp->wcsposerr[1] = dummy;
-                            msamp->wcspostheta = 90.0;
-                        }
-                        else
-                            msamp->wcspostheta = 0.0;
-                        msamp->epoch = epoch / weights;
-                        msamp->epochmin = epochmin;
-                        msamp->epochmax = epochmax;
-                        if (prefs.spread_flag)
-                        {
-                            msamp->spread = spread / wspread;
-                            msamp->spreaderr = sqrt(1.0 / wspread);
-                        }
-                    }
-                    msamp->npos_tot = nall;
-                    msamp->npos_ok = nposok;
-                    for (samp2 = samp; samp2; samp2=samp2->prevsamp)
-                        samp2->msamp = msamp;
-                    msamp++;
-                }
-        }
-    }
+    fprintf(stderr, "have %i msamples\n", nmsample);
+    fprintf(stderr, "have %i msamples\n", nmsample);
+    fprintf(stderr, "have %i msamples\n", nmsample);
+    fprintf(stderr, "have %i msamples\n", nmsample);
+    //merge_field(reffield, naxis, &index, &msamp);
 
     return fgroup->msample;
 }

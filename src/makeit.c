@@ -70,6 +70,97 @@
 
 time_t thetime, thetime2;
 
+static void
+count_samples(int nfields, fieldstruct **fields) {
+    int i, j, k, c = 0;
+    for (i=0; i<nfields; i++)
+        for (j=0; j<fields[i]->nset; j++)
+            c += fields[i]->set[j]->nsample;
+    fprintf(stderr, "have total of %i samples\n", c);
+    fprintf(stderr, "have total of %i samples\n", c);
+    fprintf(stderr, "have total of %i samples\n", c);
+    fprintf(stderr, "have total of %i samples\n", c);
+    fprintf(stderr, "have total of %i samples\n", c);
+}
+
+static void
+find_zero_samples(int ngroup, fgroupstruct **fgroups)
+{
+    int i;
+    fgroupstruct *f;
+    for (i=0; i<ngroup; i++) {
+        f = fgroups[i];
+        int j;
+        fieldstruct *s;
+        for (j=0; j<f->nfield; j++) {
+            s = f->field[j];
+            setstruct *set;
+            int k;
+            for (k=0; k<s->nset; k++) {
+                set = s->set[k];
+                samplestruct *samp;
+                int l;
+                for (l=0; l<set->nsample; l++) {
+                    samp = &set->sample[l];
+                    double lng =
+                            samp->wcspos[samp->set->field->lng];
+                    double lat = 
+                            samp->wcspos[samp->set->field->lat];
+
+                    if (lng < 1)
+                        fprintf(stderr, "%lf %lf\n", lng, lat);
+                }
+            }
+
+        }
+    }
+}
+
+static void
+check_numobjects(int ngroup, fgroupstruct **fgroups) {
+    int i, j, k, l, m;
+
+    int c = 0;
+    for (i=0; i<ngroup; i++) {
+        for (j=0; j<fgroups[i]->nfield; j++) {
+            for (k=0; k<fgroups[i]->field[j]->nset; k++) {
+                for (l=0; l<fgroups[i]->field[j]->set[k]->nsample; l++) {
+                    samplestruct *samp = &fgroups[i]->field[j]->set[k]->sample[l];
+                    samplestruct *start = samp;
+
+                    // go to the begining
+                    while (start->prevsamp)
+                        start = start->prevsamp;
+
+                    // count samples
+                    int num = 1;
+                    while (start->nextsamp) {
+                        num++;
+                        start = start->nextsamp;
+                    }
+                    if (num < 2)
+                        fprintf(stderr, "have msample num %i\n", num);
+
+                    // only tail
+                    if (!samp->nextsamp)
+                        c++;
+               }
+            }
+        }
+    }
+    fprintf(stderr, "have total of %i samples linked objects\n", c);
+    fprintf(stderr, "have total of %i samples linked objects\n", c);
+    fprintf(stderr, "have total of %i samples linked objects\n", c);
+    fprintf(stderr, "have total of %i samples linked objects\n", c);
+    fprintf(stderr, "have total of %i samples linked objects\n", c);
+    fprintf(stderr, "have total of %i samples linked objects\n", c);
+    fprintf(stderr, "have total of %i samples linked objects\n", c);
+}
+static void
+check_866(int ngroup, fgroupstruct **fgroups)
+{
+}
+
 /********************************** makeit ***********************************/
 void makeit(void)
 {
@@ -148,6 +239,7 @@ void makeit(void)
         print_fieldinfo(fields[f]);
     }
 #endif
+    count_samples(nfield, fields);
 
     nsample = 0;
     for (f=0; f<nfield; f++)
@@ -244,6 +336,7 @@ void makeit(void)
         fft_end();
     }
 
+
     QPRINTF(OUTPUT, "\n");
 
     for (g=0; g<ngroup; g++)
@@ -255,6 +348,9 @@ void makeit(void)
         NFPRINTF(OUTPUT, str);
         CrossId_run(fgroups[g], reffields[g], prefs.crossid_radius*ARCSEC/DEG);
     }
+
+    check_numobjects(ngroup, fgroups);
+
 
     if (prefs.solvastrom_flag)
     {
@@ -271,20 +367,24 @@ void makeit(void)
             sprintf(str, "Making cross-identifications in group %d", g+1);
             NFPRINTF(OUTPUT, str);
             CrossId_run(fgroups[g], reffields[g],prefs.crossid_radius*ARCSEC/DEG);
-
             sprintf(str, "Computing astrometric stats for group %d", g+1);
             NFPRINTF(OUTPUT, str);
             astrstats_fgroup(fgroups[g], reffields[g], prefs.sn_thresh[1]);
+
             sprintf(str, "Astrometric clipping in group %d", g+1);
             NFPRINTF(OUTPUT, str);
-            nclip = astrclip_fgroup(fgroups[g], reffields[g], prefs.astrclip_nsig);
             NFPRINTF(OUTPUT, "");
+
+            // this is where we have a problem of multiple sources
+            nclip = astrclip_fgroup(fgroups[g], reffields[g], prefs.astrclip_nsig);
+
             QPRINTF(OUTPUT, " Group %2d: %d/%d detections removed\n",
                     g+1, nclip, fgroups[g]->nintmatch);
         }
 
         /*-- Compute global astrometric solution: 2nd iteration */
         astrsolve_fgroups(fgroups, ngroup);
+
     }
 
     /* Display internal astrometric stats */
@@ -607,6 +707,8 @@ void makeit(void)
     sprintf(prefs.stime_end,"%02d:%02d:%02d",
             tm->tm_hour, tm->tm_min, tm->tm_sec);
     prefs.time_diff = difftime(thetime2, thetime);
+
+    find_zero_samples(ngroup, fgroups);
 
     /* Save merged catalogs */
     if (prefs.mergedcat_type != CAT_NONE)
