@@ -562,10 +562,8 @@ setstruct *read_samples(setstruct *set, tabstruct *tab, char *rfilename)
         sample = set->sample + nsample;
         sample->set = set;
         sample->sexflags = sexflags;
-        /*
         if (sexflags == 4)
             fprintf(stderr, "samples.c: have flag %i %i\n", sexflags, ++count);
-            */
         sample->scampflags = 0;
         sample->flux = f;
         sample->fluxerr = ferr;
@@ -711,11 +709,9 @@ void realloc_samples(setstruct *set, int nsample)
     {
         QREALLOC(set->sample, samplestruct, nsample);
         sample = set->sample + set->nsamplemax;
-        for (n = nsample - set->nsamplemax; n--; sample++) {
-            memset(sample, '\0', sizeof(samplestruct));
+        for (n = nsample - set->nsamplemax; n--; sample++)
             if (set->ncontext)
                 QMALLOC(sample->context, double, set->ncontext);
-        }
     }
     else if (nsample<set->nsamplemax)
     {
