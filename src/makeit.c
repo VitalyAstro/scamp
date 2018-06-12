@@ -76,11 +76,7 @@ count_samples(int nfields, fieldstruct **fields) {
     for (i=0; i<nfields; i++)
         for (j=0; j<fields[i]->nset; j++)
             c += fields[i]->set[j]->nsample;
-    fprintf(stderr, "have total of %i samples\n", c);
-    fprintf(stderr, "have total of %i samples\n", c);
-    fprintf(stderr, "have total of %i samples\n", c);
-    fprintf(stderr, "have total of %i samples\n", c);
-    fprintf(stderr, "have total of %i samples\n", c);
+    fprintf(stderr, "makeit/count_samples: have total of %i samples\n", c);
 }
 
 static void
@@ -138,8 +134,10 @@ check_numobjects(int ngroup, fgroupstruct **fgroups) {
                         num++;
                         start = start->nextsamp;
                     }
+                    /*
                     if (num < 2)
                         fprintf(stderr, "have msample num %i\n", num);
+                        */
 
                     // only tail
                     if (!samp->nextsamp)
@@ -148,17 +146,29 @@ check_numobjects(int ngroup, fgroupstruct **fgroups) {
             }
         }
     }
-    fprintf(stderr, "have total of %i samples linked objects\n", c);
-    fprintf(stderr, "have total of %i samples linked objects\n", c);
-    fprintf(stderr, "have total of %i samples linked objects\n", c);
-    fprintf(stderr, "have total of %i samples linked objects\n", c);
-    fprintf(stderr, "have total of %i samples linked objects\n", c);
-    fprintf(stderr, "have total of %i samples linked objects\n", c);
-    fprintf(stderr, "have total of %i samples linked objects\n", c);
+    fprintf(stderr, "makeit/check_numobjects: ========>\n");
+    fprintf(stderr, "makeit/check_numobjects: have total of %i samples linked objects\n", c);
 }
+
 static void
 check_866(int ngroup, fgroupstruct **fgroups)
 {
+    int i, j, k, l, m;
+
+    int c = 1;
+    for (i=0; i<ngroup; i++) {
+        for (j=0; j<fgroups[i]->nfield; j++) {
+            for (k=0; k<fgroups[i]->field[j]->nset; k++) {
+                for (l=0; l<fgroups[i]->field[j]->set[k]->nsample; l++)  {
+                    if (c++ == 866) {
+                        samplestruct *samp = &fgroups[i]->field[j]->set[k]->sample[l];
+                        fprintf(stderr, "makeit/check_866: have samp %p <<<<<<<<<<<<<<<<<<<<\n", samp);
+                        return;
+                    }
+                }
+            }
+        }
+    }
 }
 
 /********************************** makeit ***********************************/
@@ -308,6 +318,7 @@ void makeit(void)
         }
     }
 
+    check_numobjects(ngroup, fgroups);
     /* Find where fields are in the sky */
     if (prefs.match_flag && prefs.astrefcat != ASTREFCAT_NONE)
     {
@@ -337,6 +348,7 @@ void makeit(void)
     }
 
 
+    check_numobjects(ngroup, fgroups);
     QPRINTF(OUTPUT, "\n");
 
     for (g=0; g<ngroup; g++)
@@ -387,6 +399,8 @@ void makeit(void)
 
     }
 
+    fprintf(stderr, "makeit: AAA\n");
+    check_numobjects(ngroup, fgroups);
     /* Display internal astrometric stats */
     NFPRINTF(OUTPUT, "");
     QPRINTF(OUTPUT, " \n----- Astrometric stats (internal) :\n\n");
@@ -425,6 +439,8 @@ void makeit(void)
         }
     }
 
+    fprintf(stderr, "makeit: BBB\n");
+    check_numobjects(ngroup, fgroups);
     /* Display external astrometric stats */
     NFPRINTF(OUTPUT, "");
     QPRINTF(OUTPUT, " \n----- Astrometric stats (external):\n\n");
@@ -447,6 +463,7 @@ void makeit(void)
                 fgroups[g]->chi2_ref_hsn, fgroups[g]->nrefmatch_hsn);
     }
 
+    check_numobjects(ngroup, fgroups);
     if (prefs.solvphotom_flag)
     {
         /*-- Compute global photometric solution: 1st iteration */
@@ -478,6 +495,7 @@ void makeit(void)
         /*-- Compute global photometric solution: 2nd iteration */
         photsolve_fgroups(fgroups, ngroup);
     }
+    check_numobjects(ngroup, fgroups);
 
     NFPRINTF(OUTPUT, "");
     QPRINTF(OUTPUT, " \n----- Photometric stats (internal):\n\n");
@@ -508,6 +526,7 @@ void makeit(void)
         }
     }
 
+    check_numobjects(ngroup, fgroups);
     NFPRINTF(OUTPUT, "");
     QPRINTF(OUTPUT, " \n----- Photometric stats (external):\n\n");
     QIPRINTF(OUTPUT, "                     All detections     | "
@@ -532,6 +551,7 @@ void makeit(void)
 
     QPRINTF(OUTPUT, "\n");
 
+    check_numobjects(ngroup, fgroups);
     NFPRINTF(OUTPUT, "Merging detections...");
     for (g=0; g<ngroup; g++)
         merge_fgroup(fgroups[g], reffields[g]);

@@ -138,7 +138,13 @@ void	writemergedcat_fgroup(char *filename, fgroupstruct *fgroup)
         else
             if (!(ascfile = fopen(filename, "w+")))
                 error(EXIT_FAILURE,"*Error*: cannot open ", filename);
-        if (prefs.mergedcat_type == CAT_ASCII_HEAD && (key = objtab->key))
+
+        fprintf(stderr, "catout: open file %s\n", filename);
+        fprintf(stderr, "catout: open file %s\n", filename);
+        fprintf(stderr, "catout: open file %s\n", filename);
+        fprintf(stderr, "catout: open file %s\n", filename);
+
+        if (prefs.mergedcat_type == CAT_ASCII_HEAD && (key = objtab->key)) {
             for (i=0,n=1; i++<objtab->nkey; key=key->nextkey)
             {
                 if (*key->unit)
@@ -149,6 +155,7 @@ void	writemergedcat_fgroup(char *filename, fgroupstruct *fgroup)
                             n, key->name,key->comment);
                 n += key->naxis? *key->naxisn : 1;
             }
+        }
         else if (prefs.mergedcat_type == CAT_ASCII_SKYCAT && (key = objtab->key))
         {
             if (objtab->nkey<3)
@@ -226,21 +233,21 @@ void	writemergedcat_fgroup(char *filename, fgroupstruct *fgroup)
         init_writeobj(cat, objtab, &buf);
     }
 
-    int jj = 0;
+    int jj = 1;
     index=0;
     msamp = fgroup->msample;
     for (m=fgroup->nmsample; m--; msamp++)
     {
         samp = msamp->samp;
         if (jj == 866)
-            fprintf(stderr, "msamp = %p \n", msamp);
+            fprintf(stderr, "catout: msamp = %p \n", msamp);
         if (jj == 866)
-            fprintf(stderr, "samp = %p \n", samp);
+            fprintf(stderr, "catout: samp = %p \n", samp);
 
         memset(&mergedsample, 0, sizeof(mergedsample));
         mergedsample.sourceindex = msamp->sourceindex;
         if (jj == 866)
-            fprintf(stderr, "msamp->sourceindex = %i \n", msamp->sourceindex);
+            fprintf(stderr, "catout: msamp->sourceindex = %i \n", msamp->sourceindex);
 
         /*-- Photometry */
         for (p=0; p<npinstru; p++)
@@ -250,17 +257,19 @@ void	writemergedcat_fgroup(char *filename, fgroupstruct *fgroup)
         }
         nphotok = 0;
         if (jj == 866)
-            fprintf(stderr, "prevsamp = %p \n", samp->prevsamp);
+            fprintf(stderr, "catout: prevsamp = %p \n", samp->prevsamp);
+        if (jj == 866)
+            fprintf(stderr, "catout: nextsamp = %p \n", samp->nextsamp);
         for (samp2 = samp; samp2 && (p=samp2->set->field->photomlabel)>=0;
                 samp2=samp2->prevsamp)
         {
             if (jj == 866)
-                fprintf(stderr, "quand meme un\n");
+                fprintf(stderr, "catout: quand meme un\n");
             if ((samp2->sexflags & sexflagmask)
                     || (samp2->imaflags & imaflagmask))
                 continue;
             if (jj == 866)
-                fprintf(stderr, "continue ??\n");
+                fprintf(stderr, "catout: continue ??\n");
             if (samp2->flux > 0.0 && (err2 = samp2->magerr*samp2->magerr)>0.0)
             {
                 magerr[p] += 1.0 / err2;
@@ -298,6 +307,11 @@ void	writemergedcat_fgroup(char *filename, fgroupstruct *fgroup)
             mergedsample.wcsposerr[d] = msamp->wcsposerr[d];
             mergedsample.wcsprop[d] = msamp->wcsprop[d] * DEG/MAS;
             mergedsample.wcsproperr[d] = msamp->wcsproperr[d] * DEG/MAS;
+            if (jj==866) {
+                fprintf(stderr, "catout: msamp wcspos %lf ??\n", msamp->wcspos[d]);
+                fprintf(stderr, "catout: msamp wcsposerr %lf ??\n", msamp->wcsposerr[d]);
+                fprintf(stderr, "catout: msamp wcsprop %lf ??\n", msamp->wcsprop[d]);
+            }
         }
         mergedsample.wcschi2 = msamp->wcschi2;
 
@@ -321,6 +335,8 @@ void	writemergedcat_fgroup(char *filename, fgroupstruct *fgroup)
         if (msamp->epoch < 3.0) {
             //fprintf(stderr, "%i epoch is %lf\n", jj, msamp->epoch);
         }
+        if (jj == 866)
+            fprintf(stderr, "catout: nextsamp = %p \n", samp->nextsamp);
         /*-- Write to the catalog */
         if (prefs.mergedcat_type == CAT_ASCII_HEAD
                 || prefs.mergedcat_type == CAT_ASCII

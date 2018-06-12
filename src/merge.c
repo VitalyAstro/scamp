@@ -47,6 +47,7 @@
 #include "threads.h"
 #endif
 
+static int count = 0;
     static void
 merge_field(fieldstruct *field, int naxis, int *index, msamplestruct **msamp)
 {
@@ -82,6 +83,13 @@ merge_field(fieldstruct *field, int naxis, int *index, msamplestruct **msamp)
             (*msamp)->sourceindex = ++(*index);
             (*msamp)->samp = samp;
 
+            if ((*index) == 866)
+                fprintf(stderr, "merge: 866=========================\n");
+            else if ((*index) == 40) 
+                fprintf(stderr, "merge: 40==========================\n");
+
+            if ((*index) == 866)
+                fprintf(stderr, "merge: sample %p\n", samp);
             /*-------- Astrometry */
             nall = nposok = 0;
             for (d=0; d<naxis; d++)
@@ -94,11 +102,38 @@ merge_field(fieldstruct *field, int naxis, int *index, msamplestruct **msamp)
                     samp2 && ((p=samp2->set->field->photomlabel)>=0 || refflag);
                     samp2=samp2->prevsamp)
             {
+
+                if ((*index) == 866 || (*index) == 40) {
+                    fprintf(stderr, "merge: entering for loop\n");
+                    fprintf(stderr, "merge: have prevsamp %p\n",samp2->prevsamp);
+                    fprintf(stderr, "merge: sexflag %i\n", samp2->sexflags);
+                    fprintf(stderr, "merge: sexflagmask %i\n", samp2->sexflags & sexflagmask);
+                    fprintf(stderr, "merge: imaflagsmask %i\n", samp2->imaflags & imaflagmask);
+                    fprintf(stderr, "merge: scampflags %i\n", samp2->imaflags & SCAMP_BADPROPER);
+                }
+                if (samp2->sexflags == 4) {
+                    //fprintf(stderr, "have 4 for sexflags for %i\n", *index);
+                    count++;
+                }
+
+
                 nall++;
-                if ((samp2->sexflags & sexflagmask)
+                if (((samp2->sexflags & sexflagmask)
                         || (samp2->imaflags & imaflagmask)
                         || (samp2->scampflags & SCAMP_BADPROPER))
+                        && samp2->prevsamp
+                        ) {
+                    if ((*index) == 866 || (*index) == 40)
+                        fprintf(stderr, "merge: if is true\n");
                     continue;
+                } else {
+                    if ((*index) == 866 || (*index) == 40)
+                        fprintf(stderr, "merge: if is false \n");
+                }
+
+                if ((*index) == 866 || (*index) == 40)
+                    fprintf(stderr, "merge: still inside the loop\n");
+
                 for (d=0; d<naxis; d++)
                 {
                     err2 = samp2->wcsposerr[d]*samp2->wcsposerr[d];
@@ -145,8 +180,14 @@ merge_field(fieldstruct *field, int naxis, int *index, msamplestruct **msamp)
                 (*msamp)->imaflags |= samp2->imaflags;
                 nposok++;
             }
+
+             if ((*index) == 866 || (*index) == 40)
+                fprintf(stderr, "merge: continue to next %i\n", nposok);
+
             if (nposok)
             {
+                if ((*index) == 866 || (*index) == 40)
+                    fprintf(stderr, "merge: if nposok\n");
                 for (d=0; d<naxis; d++)
                 {
                     (*msamp)->wcspos[d] = wcspos[d] / wcsposerr[d];
@@ -180,15 +221,24 @@ merge_field(fieldstruct *field, int naxis, int *index, msamplestruct **msamp)
                 }
             }
 
-            if ((*index) == 866) {
-                fprintf(stderr, "=========================\n");
-                fprintf(stderr, "%p \n", (*msamp));
-                fprintf(stderr, "%i \n", (*msamp)->sourceindex);
-                fprintf(stderr, "%p \n", (*msamp)->samp);
-                fprintf(stderr, "%p \n", (*msamp)->samp->nextsamp);
-                fprintf(stderr, "%p \n", (*msamp)->samp->prevsamp);
-                fprintf(stderr, "%lf \n", (*msamp)->samp->wcspos[(*msamp)->samp->set->field->lng]);
-                fprintf(stderr, "%lf \n", (*msamp)->samp->wcspos[(*msamp)->samp->set->field->lat]);
+            //if (samp2->sexflags == 4) {
+                //fprintf(stderr, "have sexflag 4\n");
+            //}
+            if ((*index) == 866 || (*index) == 40) {
+                fprintf(stderr, "merge: %p \n", (*msamp));
+                fprintf(stderr, "merge: %i \n", (*msamp)->sourceindex);
+                fprintf(stderr, "merge: %p \n", (*msamp)->samp);
+                fprintf(stderr, "merge: %p \n", (*msamp)->samp->nextsamp);
+                fprintf(stderr, "merge: %p \n", (*msamp)->samp->prevsamp);
+                fprintf(stderr, "merge: %lf \n", (*msamp)->samp->wcspos[(*msamp)->samp->set->field->lng]);
+                fprintf(stderr, "merge: %lf \n", (*msamp)->samp->wcspos[(*msamp)->samp->set->field->lat]);
+                for (d=0; d<naxis; d++) {
+                    fprintf(stderr, "merge: wcspos %lf \n", (*msamp)->wcspos[d]);
+                    fprintf(stderr, "merge: wcsposerr %lf \n", (*msamp)->wcsposerr[d]);
+                    fprintf(stderr, "merge: wcsprop %lf \n", (*msamp)->wcsprop[d]);
+                    fprintf(stderr, "merge: wcspos %lf \n", (*msamp)->wcspos[d]);
+                    fprintf(stderr, "merge: wcsposerr %lf \n", (*msamp)->wcsposerr[d]);
+                }
             }
 
             (*msamp)->npos_tot = nall;
@@ -200,6 +250,7 @@ merge_field(fieldstruct *field, int naxis, int *index, msamplestruct **msamp)
             (*msamp)++;
         }
     }
+    fprintf(stderr, "merge.c: total 4 sexflags is %i\n", count);
 
 }
 
@@ -236,7 +287,7 @@ msamplestruct	*merge_fgroup(fgroupstruct *fgroup, fieldstruct *reffield)
     }
 
     /* Count the total number of sources */
-    nmsample=0;
+    nmsample = 0;
     for (f=0; f<fgroup->nfield; f++) {
         for (s=0; s<fgroup->field[f]->nset; s++) {
             for (n=0; n<fgroup->field[f]->set[s]->nsample; n++) {
@@ -249,6 +300,11 @@ msamplestruct	*merge_fgroup(fgroupstruct *fgroup, fieldstruct *reffield)
         }
     }
 
+    fprintf(stderr, "merge: have %i msamples\n", nmsample);
+    fprintf(stderr, "merge: have %i msamples\n", nmsample);
+    fprintf(stderr, "merge: have %i msamples\n", nmsample);
+    fprintf(stderr, "merge: have %i msamples\n", nmsample);
+
     fgroup->nmsample = nmsample;
     QCALLOC(fgroup->msample, msamplestruct, fgroup->nmsample);
     msamp = fgroup->msample;
@@ -256,11 +312,6 @@ msamplestruct	*merge_fgroup(fgroupstruct *fgroup, fieldstruct *reffield)
     index = 0;
     for (f=0; f<fgroup->nfield; f++)
         merge_field(fgroup->field[f], naxis, &index, &msamp);
-
-    fprintf(stderr, "have %i msamples\n", nmsample);
-    fprintf(stderr, "have %i msamples\n", nmsample);
-    fprintf(stderr, "have %i msamples\n", nmsample);
-    fprintf(stderr, "have %i msamples\n", nmsample);
     //merge_field(reffield, naxis, &index, &msamp);
 
     return fgroup->msample;

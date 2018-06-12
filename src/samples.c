@@ -59,6 +59,7 @@ int compraw_samples(const void *, const void *);
 int compproj_samples(const void *, const void *);
 int compwcs_samples(const void *, const void *);
 int sort_coord;
+static int count = 0;
 
 /****** read_samples *********************************************************
   PROTO setstruct *read_samples(setstruct *set, tabstruct *tab,char *rfilename)
@@ -440,8 +441,13 @@ setstruct *read_samples(setstruct *set, tabstruct *tab, char *rfilename)
         {
             if ((*wflags & prefs.wflags_mask))
                 continue;
-            if (*wflags)
+            if (*wflags) {
                 sexflags |= OBJ_TRUNC;
+                fprintf(stderr, "samples.c: sexflags is %i\n",sexflags);
+                fprintf(stderr, "samples.c: sexflags is %i\n",sexflags);
+                fprintf(stderr, "samples.c: sexflags is %i\n",sexflags);
+                fprintf(stderr, "samples.c: sexflags is %i\n",sexflags);
+            }
         }
 
         if (imaflags && (*imaflags & prefs.imaflags_mask))
@@ -556,6 +562,8 @@ setstruct *read_samples(setstruct *set, tabstruct *tab, char *rfilename)
         sample = set->sample + nsample;
         sample->set = set;
         sample->sexflags = sexflags;
+        if (sexflags == 4)
+            fprintf(stderr, "samples.c: have flag %i %i\n", sexflags, ++count);
         sample->scampflags = 0;
         sample->flux = f;
         sample->fluxerr = ferr;
