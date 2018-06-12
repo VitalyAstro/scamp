@@ -701,9 +701,11 @@ void realloc_samples(setstruct *set, int nsample)
     {
         QREALLOC(set->sample, samplestruct, nsample);
         sample = set->sample + set->nsamplemax;
-        for (n = nsample - set->nsamplemax; n--; sample++)
+        for (n = nsample - set->nsamplemax; n--; sample++) {
+            memset(sample, '\0', sizeof(samplestruct));
             if (set->ncontext)
                 QMALLOC(sample->context, double, set->ncontext);
+        }
     }
     else if (nsample<set->nsamplemax)
     {
