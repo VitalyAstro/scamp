@@ -69,14 +69,28 @@
 #include "chealpix.h"
 
 time_t thetime, thetime2;
+static void *strangeptr = NULL;
 
 static void
 count_samples(int nfields, fieldstruct **fields) {
     int i, j, k, c = 0;
+    int d = 0;
     for (i=0; i<nfields; i++)
-        for (j=0; j<fields[i]->nset; j++)
+        for (j=0; j<fields[i]->nset; j++) {
             c += fields[i]->set[j]->nsample;
-    fprintf(stderr, "makeit/count_samples: have total of %i samples\n", c);
+            for (k=0; k<fields[i]->set[j]->nsample; k++) {
+                samplestruct *s = &fields[i]->set[j]->sample[k];
+                if (strangeptr)
+                    if (s == strangeptr) {
+                        fprintf(stderr, "makeit/count_samples: vvvvvalide ptr!\n");
+                    }
+                if (s->nextsamp)
+                    d++;
+            }
+
+        }
+    fprintf(stderr, "makeit/count_samples: have total of %i samples (%i)\n", c, d);
+    fprintf(stderr, "makeit/count_samples: have total of %i samples (%i)\n", c, d);
 }
 
 static void
@@ -117,11 +131,14 @@ check_numobjects(int ngroup, fgroupstruct **fgroups) {
     int i, j, k, l, m;
 
     int c = 0;
+    int d = 0;
     for (i=0; i<ngroup; i++) {
         for (j=0; j<fgroups[i]->nfield; j++) {
             for (k=0; k<fgroups[i]->field[j]->nset; k++) {
+                d += fgroups[i]->field[j]->set[k]->nsample;
                 for (l=0; l<fgroups[i]->field[j]->set[k]->nsample; l++) {
                     samplestruct *samp = &fgroups[i]->field[j]->set[k]->sample[l];
+                    /*
                     samplestruct *start = samp;
 
                     // go to the begining
@@ -134,7 +151,6 @@ check_numobjects(int ngroup, fgroupstruct **fgroups) {
                         num++;
                         start = start->nextsamp;
                     }
-                    /*
                     if (num < 2)
                         fprintf(stderr, "have msample num %i\n", num);
                         */
@@ -142,12 +158,18 @@ check_numobjects(int ngroup, fgroupstruct **fgroups) {
                     // only tail
                     if (!samp->nextsamp)
                         c++;
+                    else {
+                        fprintf(stderr, "check_numobjects what the fuck %p nextsamp -> %p %i (g:%i f:%i s:%i samp:%i)\n", samp, samp->nextsamp, c, i, j,k,l);
+                        fprintf(stderr, "check_numobjects what the fuck %p nextsamp -> %i %i \n", samp, samp->set->setindex, samp->set->field->fieldindex);
+                        strangeptr = samp->nextsamp;
+                    }
                }
             }
         }
     }
     fprintf(stderr, "makeit/check_numobjects: ========>\n");
-    fprintf(stderr, "makeit/check_numobjects: have total of %i samples linked objects\n", c);
+    fprintf(stderr, "makeit/check_numobjects: have total of %i %isamples linked objects\n", c, d);
+    fprintf(stderr, "makeit/check_numobjects: have total of %i %isamples linked objects\n", c, d);
 }
 
 static void
@@ -235,7 +257,7 @@ void makeit(void)
     NFPRINTF(OUTPUT, "");
     QPRINTF(OUTPUT, "----- %d inputs:\n", nfield);
 
-#ifdef USE_THREADS
+#ifdef  JOJO
     pthread_load_fields(fields, nfield);
 #else
     for (f=0; f<nfield; f++)
@@ -243,11 +265,13 @@ void makeit(void)
         /*-- Load catalogs */
         fields[f] = load_field(prefs.file_name[f], f, prefs.ahead_name[f]);
         NFPRINTF(OUTPUT, "");
+    }
+    count_samples(nfield, fields);
+    for (f=0; f<nfield; f++)
 
         /*-- Compute basic field astrometric features (center, field size,...) */
         locate_field(fields[f]);
         print_fieldinfo(fields[f]);
-    }
 #endif
     count_samples(nfield, fields);
 
@@ -259,10 +283,17 @@ void makeit(void)
     QPRINTF(OUTPUT, "\n----- %d detections loaded\n", nsample);
 
     /* Group fields on the sky */
+
     fgroups = group_fields(fields, nfield, &ngroup);
     NFPRINTF(OUTPUT, "");
     print_instruinfo();
     print_fgroupinfo(fgroups, ngroup);
+
+    fprintf(stderr, "-----------\n");
+    count_samples(nfield, fields);
+    check_numobjects(ngroup, fgroups);
+    count_samples(nfield, fields);
+    fprintf(stderr, "-----------\n");
 
     adjust_mosaic(fields, nfield);
 

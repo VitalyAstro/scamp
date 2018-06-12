@@ -79,12 +79,17 @@ fgroupstruct **group_fields(fieldstruct **fields, int nfield, int *nfgroup) {
     ngroup = 0;
     /* Allocate memory */
     QCALLOC(fgroups, fgroupstruct *, nfield);
+    fprintf(stderr, "fgroup: fgroup alloc is %p\n", fgroups);
+    fprintf(stderr, "fgroup: fgroup alloc is %p\n", fgroups);
+    fprintf(stderr, "fgroup: orig ngruops is %i\n", ngroup);
     for (f1 = 0; f1 < nfield; f1++) {
+        fprintf(stderr, "fgroup: inside ngroups is %i\n", ngroup);
         sprintf(str, "Grouping fields: field %d/%d, %d group%s",
                 f1+1, nfield, ngroup, ngroup > 1? "s" : "");
         NFPRINTF(OUTPUT, str);
         testflag = 1;
         field1 = fields[f1];
+
         /*-- Sort group fields by increasing distance to current field */
         for (g = 0; g < ngroup; g++) {
             for (f2 = 0; f2 < fgroups[g]->nfield; f2++) {
