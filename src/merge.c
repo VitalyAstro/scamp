@@ -143,9 +143,9 @@ msamplestruct	*merge_fgroup(fgroupstruct *fgroup, fieldstruct *reffield)
                             samp2=samp2->prevsamp)
                     {
                         nall++;
-                        if ((samp2->sexflags & sexflagmask)
+                        if (((samp2->sexflags & sexflagmask)
                                 || (samp2->imaflags & imaflagmask)
-                                || (samp2->scampflags & SCAMP_BADPROPER))
+                                || (samp2->scampflags & SCAMP_BADPROPER)) && samp2->prevsamp)
                             continue;
                         for (d=0; d<naxis; d++)
                         {
