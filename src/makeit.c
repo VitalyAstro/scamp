@@ -386,6 +386,13 @@ void makeit(void)
             sprintf(str, "Astrometric clipping in group %d", g+1);
             NFPRINTF(OUTPUT, str);
             NFPRINTF(OUTPUT, "");
+        }
+
+        fprintf(stderr, "makeit: III\n");
+
+        check_numobjects(ngroup, fgroups);
+        for (g=0; g<ngroup; g++)
+        {
 
             // this is where we have a problem of multiple sources
             nclip = astrclip_fgroup(fgroups[g], reffields[g], prefs.astrclip_nsig);
@@ -423,7 +430,17 @@ void makeit(void)
                 : prefs.crossid_radius*ARCSEC/DEG);
 
         astrstats_fgroup(fgroups[g], reffields[g], prefs.sn_thresh[1]);
+    }
+
+    fprintf(stderr, "makeit: XXX\n");
+    check_numobjects(ngroup, fgroups);
+    for (g=0; g<ngroup; g++) {
         nclip = astrclip_fgroup(fgroups[g], reffields[g], prefs.astrclip_nsig);
+    }
+    fprintf(stderr, "makeit: YYY\n");
+
+    check_numobjects(ngroup, fgroups);
+    for (g=0; g<ngroup; g++) {
         astrstats_fgroup(fgroups[g], reffields[g], prefs.sn_thresh[1]);
         if (fgroups[g]->nintmatch>0)
         {

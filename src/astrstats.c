@@ -479,96 +479,137 @@ int	astrclip_fgroup(fgroupstruct *fgroup, fieldstruct *reffield,
     nclipi = nclipr = 0;
     nfield = fgroup->nfield;
     fields = fgroup->field;
+
+    /* foreach fields */
     for (f=0; f<nfield; f++)
     {
         field=fields[f];
+
+        /* foreach sets */
         for (s=0; s<field->nset; s++)
         {
             set = field->set[s];
-            nsamp = set->nsample;
             samp = set->sample;
-            for (n=nsamp; n--; samp++) {
-                if (!samp->nextsamp && samp->prevsamp)
-                {
-                    for (i=0; i<naxis; i++)
-                        meani[i] = meanr[i] = 0.0;
-                    nmeani = nmeanr = 0;
-                    for (samp2 = samp; samp2 && samp2->set->field->astromlabel>=0;
-                            samp2=samp2->prevsamp)
-                    {
-                        if ((samp2->sexflags & sexflagmask)
-                                || (samp2->imaflags & imaflagmask))
-                            continue;
-                        for (i=0; i<naxis; i++)
-                            meani[i] += samp2->projpos[i];
-                        nmeani++;
-                    }
-                    if (!(nmeani))
+
+            /* foreach samples */
+            for (n=0; n<set->nsample; n++) {
+                samp = &set->sample[n];
+
+                /* if sample is not the tail, continue */
+                if (samp->nextsamp)
+                    continue;
+
+                /* if sample as no prevsamp (is alone), continue */
+                if (!samp->prevsamp)
+                    continue;
+
+                /* initialize meani and meanr */
+                for (i=0; i<naxis; i++)
+                    meani[i] = meanr[i] = 0.0;
+
+                /* initialize nmeani and nmeanr */
+                nmeani = nmeanr = 0;
+
+                /* iterate over all sample untile we reach the head. Projpos
+                   is our 2 dimention projection */
+                samplestruct *itersample = samp;
+                do {
+                    if (
+                            (itersample->sexflags & sexflagmask)
+                         || (itersample->imaflags & imaflagmask)) {
+                        itersample = itersample->prevsamp;
                         continue;
-                    sampr = samp2;
-                    if (nmeani>1)
-                    {
-                        for (i=0; i<naxis; i++)
-                            meani[i] /= (double)nmeani;
-                        for (samp2 = samp; samp2 && samp2->set->field->astromlabel>=0;
-                                samp2 = prevsamp2)
-                        {
-                            flag = 0;
-                            dr2 = 0.0;
-                            for (i=0; i<naxis; i++)
-                            {
-                                dx = samp2->projpos[i] - meani[i];
-                                if ((dr2 += dx*dx) > clipi[i])
-                                {
-                                    flag = 1;
-                                    break;
-                                }
-                            }
-                            prevsamp2 = samp2->prevsamp;
-                            if ((flag))
-                            {
-                                /*-------------- Remove (unlink) outlier */
-                                if (samp2->nextsamp)
-                                    samp2->nextsamp->prevsamp = samp2->prevsamp;
-                                if (samp2->prevsamp)
-                                    samp2->prevsamp->nextsamp = samp2->nextsamp;
-                                samp2->prevsamp = samp2->nextsamp = NULL;
-                                nclipi++;
-                            }
-                            else
-                            {
-                                for (i=0; i<naxis; i++)
-                                    meanr[i] += samp2->projpos[i];
-                                nmeanr++;
-                            }
-                        }
                     }
-                    else
-                    {
-                        for (i=0; i<naxis; i++)
-                            meanr[i] = meani[i];
-                        nmeanr = 1;
-                    }
-                    if ((sampr) && (sampr->nextsamp))
-                    {
+
+                    for (i=0; i<naxis; i++)
+                        meani[i] += itersample->projpos[i];
+                    nmeani++;
+
+                    itersample = itersample->prevsamp;
+                } while (itersample && itersample->set->field->astromlabel >= 0);
+
+                sampr = itersample; /* keep the last iterated sample for later. */
+
+                if (nmeani == 0) {
+                    /* if we do not have any projpos (???) , continue */
+                    continue;
+
+                } else if (nmeani == 1) {
+                    /* only have one projpos */
+
+                    for (i=0; i<naxis; i++)
+                        meanr[i] = meani[i];
+                    nmeanr = 1;
+
+                } else { 
+                    /* nmean > 1 */
+
+                    /* get an average projpos  in meani ???*/
+                    for (i=0; i<naxis; i++)
+                        meani[i] /= (double)nmeani;
+
+                    itersample = samp;
+                    do {
                         flag = 0;
                         dr2 = 0.0;
                         for (i=0; i<naxis; i++)
                         {
-                            dx = sampr->projpos[i] - meanr[i]/nmeanr;
-                            if ((dr2 += dx*dx) > clipr[i])
+                            dx = itersample->projpos[i] - meani[i];
+                            if ((dr2 += dx*dx) > clipi[i])
                             {
                                 flag = 1;
-                                break;
                             }
                         }
-                        if ((flag))
+                        if ((flag) && 0)
                         {
-                            /*------------ Remove (unlink) outlier */
-                            sampr->nextsamp->prevsamp = NULL;
-                            sampr->nextsamp = NULL;
-                            nclipr++;
+                            fprintf(stderr, "have %0.30lf %0.30lf\n", dr2, clipi[0]);
+                            int ne = 0, pr = 0;
+                            /*-------------- Remove (unlink) outlier */
+                            if (itersample->nextsamp) {
+                                ne = 1;
+                                itersample->nextsamp->prevsamp = itersample->prevsamp;
+                            }
+
+                            if (itersample->prevsamp) {
+                                pr = 1;
+                                itersample->prevsamp->nextsamp = itersample->nextsamp;
+                            }
+                            itersample->prevsamp = itersample->nextsamp = NULL;
+                            nclipi++;
+                            fprintf(stderr, "astrstat: hhhhhhhhhhhhhhave an unlink %i %i %0.15lf %0.15lf %0.15lf\n", ne,pr, clipi[0], clipi[1], dr2);
                         }
+                        else
+                        {
+                            for (i=0; i<naxis; i++)
+                                meanr[i] += itersample->projpos[i];
+                            nmeanr++;
+                        }
+
+                        itersample = itersample->prevsamp;
+                    } while (itersample && itersample->set->field->astromlabel >= 0);
+                }
+
+
+                if ((sampr) && (sampr->nextsamp))
+                {
+                    flag = 0;
+                    dr2 = 0.0;
+                    for (i=0; i<naxis; i++)
+                    {
+                        dx = sampr->projpos[i] - meanr[i]/nmeanr;
+                        if ((dr2 += dx*dx) > clipr[i])
+                        {
+                            flag = 1;
+                            break;
+                        }
+                    }
+                    if ((flag))
+                    {
+                        /*------------ Remove (unlink) outlier */
+                        fprintf(stderr, "astrstat: hhhhhhhhhhhhhhave an unlink\n");
+                        sampr->nextsamp->prevsamp = NULL;
+                        sampr->nextsamp = NULL;
+                        nclipr++;
                     }
                 }
             }
