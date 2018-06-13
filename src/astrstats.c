@@ -560,9 +560,50 @@ int	astrclip_fgroup(fgroupstruct *fgroup, fieldstruct *reffield,
                                 flag = 1;
                             }
                         }
-                        if ((flag) && 0)
+                        if ((flag)) {
+                            flag = 0;
+                            dr2 = 0.0;
+                            for (i=0; i<naxis; i++)
+                            {
+                                fprintf(stderr, "in bug1: flag: %i dr2:%0.15lf i:%i\n", flag, dr2, i);
+                                dx = itersample->projpos[i] - meani[i];
+                                fprintf(stderr, "in bug2: %i projpos:%0.15lf meani:%0.15lf dx:%0.15lf dx*dx:%0.15lf clipi:%0.15lf\n", 
+                                        i, itersample->projpos[i], meani[i], dx, dx*dx, clipi[i]);
+                                if ((dr2 += dx*dx) > clipi[i])
+                                {
+                                    fprintf(stderr, "in bug3: flag set dr2: %0.20lf clipi: %0.20lf\n", dr2, clipi[i]);
+                                    flag = 1;
+                                }
+                            }
+
+                            for (i=0; i<naxis; i++)
+                            {
+                                fprintf(stderr, "clipi %i: sig_interr: %lf ksig2:%lf meanwcsscale:%lf BIG:%lf\n", i, fgroup->sig_interr[i], ksig2, fgroup->meanwcsscale[i], BIG);
+                                if (fgroup->sig_interr[i] > 0.0)
+                                    fprintf(stderr, "clipi %i: sig_inter (%0.20lf) greater\n", i, fgroup->sig_interr[i]);
+                                fprintf(stderr, "clipi %i: %lf\n", i, 
+                                    fgroup->sig_interr[i] > 0.0 ?
+                                    ksig2*fgroup->sig_interr[i]*fgroup->sig_interr[i]
+                                    /(fgroup->meanwcsscale[i]*fgroup->meanwcsscale[i])
+                                    : BIG);
+                                fprintf(stderr, "clipr %i: %lf\n", i, 
+                                    fgroup->sig_referr[i] > 0.0 ?
+                                    ksig2*fgroup->sig_referr[i]*fgroup->sig_referr[i]
+                                    /(fgroup->meanwcsscale[i]*fgroup->meanwcsscale[i])
+                                    : BIG);
+                            }
+
+                        }
+
+                        if ((flag))
                         {
-                            fprintf(stderr, "have %0.30lf %0.30lf\n", dr2, clipi[0]);
+                            fprintf(stderr, "meani: %lf %lf\n", meani[0], meani[1]);
+                            samplestruct *itersample2 = samp;
+                            do {
+                                fprintf(stderr, "%lf %lf\n", itersample2->projpos[0], itersample->projpos[1]);
+                                itersample2 = itersample2->prevsamp;
+                            } while(itersample2);
+
                             int ne = 0, pr = 0;
                             /*-------------- Remove (unlink) outlier */
                             if (itersample->nextsamp) {
@@ -576,7 +617,7 @@ int	astrclip_fgroup(fgroupstruct *fgroup, fieldstruct *reffield,
                             }
                             itersample->prevsamp = itersample->nextsamp = NULL;
                             nclipi++;
-                            fprintf(stderr, "astrstat: hhhhhhhhhhhhhhave an unlink %i %i %0.15lf %0.15lf %0.15lf\n", ne,pr, clipi[0], clipi[1], dr2);
+                            fprintf(stderr, "astrstat: hhhhhhhhhhhhhhave unlink 1111 %i %i %0.15lf %0.15lf %0.15lf\n", ne,pr, clipi[0], clipi[1], dr2);
                         }
                         else
                         {
